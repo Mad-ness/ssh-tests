@@ -1,6 +1,6 @@
 version: v1
 metadata:
-  title: Checking whether a Kerberos ticket might be issued to the {{ username }}
+  title: Checking whether a Kerberos ticket might be issued to the {{ username }} on {{ host }}
   description: "Checks if a user can receive a kerberos ticket"
   returnCodes:
     pass: 0

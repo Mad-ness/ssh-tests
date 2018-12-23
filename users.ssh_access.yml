@@ -1,6 +1,6 @@
 version: v1
 metadata:
-  title: Checking ssh access of a {{ username }} to a host using password
+  title: Checking ssh access of a {{ username }} on {{ host }} using password
   description: "It checks whether provided username and password are valid for logging in"
   returnCodes:
     pass: {{ rc_pass | default(0) }}

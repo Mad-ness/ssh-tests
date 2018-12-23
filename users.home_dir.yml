@@ -1,6 +1,6 @@
 version: v1
 metadata:
-  title: Checks if a user's home directory is being created upon the user logon
+  title: Checks if a user's home directory on {{ host }} is being created upon the user logon
   description: "Checks whether a user's home directory exists"
   returnCodes:
     pass: 0
