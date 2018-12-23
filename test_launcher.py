@@ -2,6 +2,7 @@
 
 import os, sys
 import paramiko
+import socket
 import argparse
 from jinja2 import Template
 import yaml
@@ -56,12 +57,20 @@ def remote_executing(script, debug, **kwargs):
     return RetCode.Fail
 
   # print(script)
-
   try:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
-    client.connect(hostname=host, port=port, username=username, password=password)
+    try:
+      client.connect(hostname=host, port=port, username=username, password=password, timeout=5.0)
+    except ( paramiko.SSHException, socket.error ) as exc:
+      client.close()
+      return ( RetCode.Fail, "ConnErr %s while " % exc )
+    except paramiko.AuthenticationException as exc:
+      client.close()
+      return ( RetCode.Fail, "AuthErr %s while " % exc )
+      
+
     channel = client.get_transport().open_session()
     channel.exec_command(script)
     channel.shutdown_write()
@@ -79,11 +88,11 @@ def remote_executing(script, debug, **kwargs):
   finally:
     client.close()
   if exit_code == int(returnCodes['pass']):
-    return RetCode.Pass
+    return (RetCode.Pass, "")
   elif exit_code == int(returnCodes['warn']):
-    return RetCode.Warn
+    return (RetCode.Warn, "")
   else:
-    return RetCode.Fail
+    return (RetCode.Fail, "")
 
 
 def file_loader_from_disk(filename):
@@ -159,14 +168,15 @@ def loader():
     # task_content = file_loader_from_disk(task_in_file)
 
 
-    retCode, metadata = execute_task(task_content, vars_content, debug=args.debug)
+    retCode, metadata, err_msg = execute_task(task_content, vars_content, debug=args.debug)
     status = ' OK '
     if retCode == RetCode.Fail:
       status = 'FAIL'
     elif retCode == RetCode.Warn:
       status = 'WARN'
-    output_message = "[{status}] {title}".format(
+    output_message = "[{status}] {errmsg}{title}".format(
         t_counter = task_counter,
+        errmsg = err_msg,
         all_tasks = len(args.task_from_file),
         title = metadata['title'],
         status = status,
@@ -187,11 +197,11 @@ def execute_task(task_content, vars_content, debug):
 
     # print(vars_content)
     script = render_template(task_content['script'], vars_content)
-    retCode = remote_executing(script=script, debug=debug, **vars_content)
+    retCode, err_msg = remote_executing(script=script, debug=debug, **vars_content)
     # print("{title} finished with RC={retcode}".format(title=metadata['title'], retcode=retcode))
   else:
     print("Task content is empty")
-  return ( retCode, metadata ) 
+  return ( retCode, metadata, err_msg ) 
   
 
 

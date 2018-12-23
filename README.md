@@ -39,6 +39,9 @@ Following options must be provided to the program by any way, using either **-e*
 - **username** a username which using in ssh connection
 - **password** a password for the **username** account
 
+Optional parameters:
+- **port** a port on which a client listens to incoming SSH connections
+
 
 ## Tests
 There is set of predefined tests but you may develop your own.
