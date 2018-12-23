@@ -10,9 +10,9 @@ metadata:
   tags: user, sudo
   importance: medium
 script: |
-  echo '{{ password }}' | sudo -S -l | grep 'not allowed'
+  echo '{{ password }}' | sudo -S -l # | grep 'not allowed'
   rc=$?
-  if [ $rc -eq 1 ]; then
+  if [ $rc -eq 0 ]; then
     exit 0
   else
     exit 1

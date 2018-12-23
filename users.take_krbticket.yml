@@ -5,22 +5,10 @@ metadata:
   returnCodes:
     pass: 0
     warn: 2
-  #  fail: 
-#   connection: 
-#     username: "{{ username }}"
-#     password: "{{ password }}"
-#     host: "{{ host }}"
   displayStdout: False
   displayStderr: True
-  # vars that are being rendered within the script block
-#  vars: {}
   tags: user, ssh, logon
-  # importance is any of:
-  # - critical - breaks further interrupting
-  # - medium - warning but continut is possible
-  # - none - any result is acceptable
   importance: critical 
-  # scriptInterpreter: /bin/bash
 script: |
   kdestroy -A
   echo '{{ password }}' | kinit {{ user }}

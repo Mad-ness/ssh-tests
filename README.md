@@ -159,7 +159,6 @@ A bunch of tests might be run as this
 
 ```bash
 $ cat run_tests.sh
-
 #!/bin/bash
 
 ###
@@ -177,20 +176,20 @@ python $exe -t users.take_krbticket.yml -v vars.nosudouser1.yml   -e host=$targe
 python $exe -t users.take_krbticket.yml -v vars.admin.yml         -e host=$target_host
 #
 python $exe -t users.sudo_access.yml    -v vars.user1.yml         -e host=$target_host
-python $exe -t users.sudo_access.yml    -v vars.nosudouser1.yml   -e host=$target_host
-python $exe -t users.sudo_access.yml    -v vars.admin.yml         -e host=$target_host
+python $exe -t users.sudo_access.yml    -v vars.nosudouser1.yml   -e host=$target_host -e rc_pass=1
+python $exe -t users.sudo_access.yml    -v vars.admin.yml         -e host=$target_host -e rc_pass=1
 #
 python $exe -t sys.network.yml          -v vars.user1.yml         -e host=$target_host
 ```
 Output is 
 ```shell
 $ sh run_tests.sh
-[ OK ] Checking ssh access of a user1 to a host using password
-[ OK ] Checking ssh access of a nosudouser1 to a host using password
-[ OK ] Checking ssh access of a admin to a host using password
-[ OK ] Checking whether a Kerberos ticket might be issued to the user1
-[ OK ] Checking whether a Kerberos ticket might be issued to the nosudouser1
-[ OK ] Checking whether a Kerberos ticket might be issued to the admin
+[ OK ] Checking ssh access of a user1 on 192.168.3.14 using password
+[ OK ] Checking ssh access of a nosudouser1 on 192.168.3.14 using password
+[ OK ] Checking ssh access of a admin on 192.168.3.14 using password
+[ OK ] Checking whether a Kerberos ticket might be issued to the user1 on 192.168.3.14
+[ OK ] Checking whether a Kerberos ticket might be issued to the nosudouser1 on 192.168.3.14
+[ OK ] Checking whether a Kerberos ticket might be issued to the admin on 192.168.3.14
 [ OK ] Checking whether a user user1 dis-/allowed sudo privileges
 [ OK ] Checking whether a user nosudouser1 dis-/allowed sudo privileges
 [ OK ] Checking whether a user admin dis-/allowed sudo privileges
