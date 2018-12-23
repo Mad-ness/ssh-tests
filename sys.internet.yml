@@ -1,0 +1,16 @@
+version: v1
+metadata:
+  title: Connection to google.com server
+  description: |
+    Checks whether Internet is available on the host
+  returnCodes:
+    pass: 0
+    warn: 2
+  displayStdout: False
+  displayStderr: True
+  tags: network, internet
+  importance: medium
+script: |
+  host google.com
+  # return 0 if can resolv google.com host
+  # return 1 if cannot resolv google.com

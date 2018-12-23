@@ -19,4 +19,7 @@ python $exe -t users.sudo_access.yml    -v vars.nosudouser1.yml   -e host=$targe
 python $exe -t users.sudo_access.yml    -v vars.admin.yml         -e host=$target_host -e rc_pass=1
 #
 python $exe -t sys.network.yml          -v vars.user1.yml         -e host=$target_host
+python $exe -t sys.internet.yml         -v vars.user1.yml         -e host=$target_host
+python $exe -t sys.internet.yml         -v vars.nosudouser1.yml   -e host=$target_host
+python $exe -t sys.internet.yml         -v vars.admin.yml         -e host=$target_host
 
