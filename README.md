@@ -33,6 +33,12 @@ The program can load variables from files *--vars-file* option and use variables
 
 All variables are passed to the task.
 
+## Variables
+Following options must be provided to the program by any way, using either **-e**, or **-v** option.
+- **host** a remote host where a test is being run
+- **username** a username which using in ssh connection
+- **password** a password for the **username** account
+
 
 ## Tests
 There is set of predefined tests but you may develop your own.
