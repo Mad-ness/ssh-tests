@@ -1,0 +1,22 @@
+version: v1
+metadata:
+  title: Checks if a user's home directory is being created upon the user logon
+  description: "Checks whether a user's home directory exists"
+  returnCodes:
+    pass: 0
+    warn: 35
+  displayStdout: False
+  displayStderr: True
+  tags: user, homedir, exist
+  importance: medium
+script: |
+  should_be_homedir=`getent passwd {{ testuser }} | awk -F':' '{print $6}'`
+  if [ x"${should_be_homedir}" != x"/" ]; then
+    rm -rf "${should_be_homedir}"
+  fi
+  if [ ! -d "${should_be_homedir}" ]; then
+    exit 1
+  fi
+  
+  exit 0
+

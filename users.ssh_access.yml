@@ -1,0 +1,19 @@
+version: v1
+metadata:
+  title: Checking ssh access of a {{ username }} to a host using password
+  description: "It checks whether provided username and password are valid for logging in"
+  returnCodes:
+    pass: {{ rc_pass | default(0) }}
+    warn: 35
+  displayStdout: False
+  displayStderr: True
+  tags: user, ssh, logon
+  # importance is any of:
+  # - critical - breaks further interrupting
+  # - medium - warning but continut is possible
+  # - none - any result is acceptable
+  importance: critical 
+script: |
+  exit 0
+
+

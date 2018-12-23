@@ -1,0 +1,20 @@
+version: v1
+metadata:
+  title: Checking whether a user {{ username }} dis-/allowed sudo privileges
+  description: "Checks whether a user dis-/allowed sudo commands"
+  returnCodes:
+    pass: {{ rc_pass|default(0) }}
+    warn: {{ rc_warn|default(99) }}
+  displayStdout: False
+  displayStderr: True
+  tags: user, sudo
+  importance: medium
+script: |
+  echo '{{ password }}' | sudo -S -l | grep 'not allowed'
+  rc=$?
+  if [ $rc -eq 1 ]; then
+    exit 0
+  else
+    exit 1
+  fi
+

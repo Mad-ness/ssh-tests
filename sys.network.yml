@@ -1,0 +1,35 @@
+version: v1
+metadata:
+  title: Checking network settings
+  description: |
+    This tests checks following things:
+    * searching own hostname in configured DNS (/etc/hosts ignored)
+    * matching IP address in DNS a local ip address
+  returnCodes:
+    pass: 0
+    warn: 2
+  displayStdout: False
+  displayStderr: True
+  tags: user, ssh, logon
+  importance: critical 
+script: |
+  # Getting a list of local ip addresses
+  # ipaddrs=`ip -4 -o -f inet addr show scope global | tr '/' ' ' | awk -F' ' '{print $4}'`
+  ipaddrs=`hostname -I`
+  dns_ip=`dig $(hostname) +noall +short +noadditional`
+  ismy_ip=0
+
+  echo $ipaddrs
+  for ip in $ipaddrs; do
+    if [ "${ip}" = "${dns_ip}" ]; then
+      ismy_ip=1
+      break;
+    fi
+  done
+  if [ $ismy_ip -eq 0 ]; then
+    exit 1
+  fi
+
+    echo "IP not found"
+  exit 0
+

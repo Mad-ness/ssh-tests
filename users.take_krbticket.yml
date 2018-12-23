@@ -1,0 +1,30 @@
+version: v1
+metadata:
+  title: Checking whether a Kerberos ticket might be issued to the {{ username }}
+  description: "Checks if a user can receive a kerberos ticket"
+  returnCodes:
+    pass: 0
+    warn: 2
+  #  fail: 
+#   connection: 
+#     username: "{{ username }}"
+#     password: "{{ password }}"
+#     host: "{{ host }}"
+  displayStdout: False
+  displayStderr: True
+  # vars that are being rendered within the script block
+#  vars: {}
+  tags: user, ssh, logon
+  # importance is any of:
+  # - critical - breaks further interrupting
+  # - medium - warning but continut is possible
+  # - none - any result is acceptable
+  importance: critical 
+  # scriptInterpreter: /bin/bash
+script: |
+  kdestroy -A
+  echo '{{ password }}' | kinit {{ user }}
+  rc=$?
+  kdestroy -A
+  exit $rc
+
