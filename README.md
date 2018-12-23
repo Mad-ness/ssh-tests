@@ -5,6 +5,25 @@ This is designed for performing automated testing configurations of ssh clients 
 ## Contents
 The tool includes an executable program written on Python and a set of tests written on declarative manner. YAML syntax is used.
 
+## Installation
+
+The program has some dependecies and they might have been already installed, if no there is a list what you need:
+- paramiko
+- argparse
+- jinja2
+- yaml
+
+### Option 1
+The sources are supplied with Pipfile and Pipfile.lock. To instal required dependencies automaticall:
+- install **pipenv** tool first (ex., pip2 install pipenv)
+- run **pip install**
+- run pipenv shell **pipenv shell**
+- run the **test_launcher.py** passing to it needed arguments as a normal python script
+
+### Option 2
+- install required dependecies on your own using, your package manager like brew, apt, yum, pip, easy_instal.
+- run the **test_launcher.py** as a normal python program
+
 ## Program
 
 Main program file is **test_launcher.py**.
