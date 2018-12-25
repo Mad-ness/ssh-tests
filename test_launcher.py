@@ -168,8 +168,8 @@ def menu_parsing():
   parser = argparse.ArgumentParser()
   parser.add_argument("-v", "--vars-file", required=False, help="Load variables from file on a disk", nargs='*')
   parser.add_argument("-e", "--env-var", action='append', required=False, nargs='*', help="Passing arguments to a task as var=value. Might be used many times")
-  parser.add_argument("--task", required=False, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
-  parser.add_argument("-t", "--tag", required=False, default=None, help="Select only the tasks with provided tag(s). Use a comma-separator to specify multiple tags")
+  parser.add_argument("-t", "--task", required=False, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
+  parser.add_argument("--tag", required=False, default=None, help="Select only the tasks with provided tag(s). Use a comma-separator to specify multiple tags")
   parser.add_argument("-d", "--debug", required=False, default=False, action='store_true', help="Debug output")
   parser.add_argument("--version", action='store_true', default=False, required=False, help="Print version information and exit")
  

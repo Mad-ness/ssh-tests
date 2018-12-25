@@ -31,21 +31,25 @@ Main program file is **test_launcher.py**.
 To get help run the program with *-h* argument.
 
 ```shell
-$ python test_launcher.py  -h
-usage: test_launcher.py [-h] [-v VARS_FILE] [-e ENV_VAR] -t
-                        [TASK_FROM_FILE [TASK_FROM_FILE ...]] [-d]
+$ python test_launcher.py --help
+usage: test_launcher.py [-h] [-v [VARS_FILE [VARS_FILE ...]]]
+                        [-e [ENV_VAR [ENV_VAR ...]]] [-t [TASK [TASK ...]]]
+                        [--tag TAG] [-d] [--version]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -v VARS_FILE, --vars-file VARS_FILE
+  -v [VARS_FILE [VARS_FILE ...]], --vars-file [VARS_FILE [VARS_FILE ...]]
                         Load variables from file on a disk
-  -e ENV_VAR, --env-var ENV_VAR
+  -e [ENV_VAR [ENV_VAR ...]], --env-var [ENV_VAR [ENV_VAR ...]]
                         Passing arguments to a task as var=value. Might be
                         used many times
-  -t [TASK_FROM_FILE [TASK_FROM_FILE ...]], --task-from-file [TASK_FROM_FILE [TASK_FROM_FILE ...]]
+  -t [TASK [TASK ...]], --task [TASK [TASK ...]]
                         A path to a task in YAML format. Multiple files
                         allowed
+  --tag TAG             Select only the tasks with provided tag(s). Use a
+                        comma-separator to specify multiple tags
   -d, --debug           Debug output
+  --version             Print version information and exit
 ```
 
 The program can load variables from files *--vars-file* option and use variables passed to the command line using *--env-var* variable. Variables passed in a command line has highest priority.
@@ -101,7 +105,7 @@ Available options in a test file:
   * **returnCodes.-** there is no **fail** return. All other codes not includes in **pass** and **warn** treated as FAIL
   * **displayStdout** displays the output of the script (not implemented yet, see --debug)
   * **displayStderr** displays errors of the script (not implemented yet, see --debug)
-  * **tags** of all passed tests, run only those which has this tag(s)
+  * **tags** selects only the tasks which have this tag(s)
   * **importance** one of *critical*, *medium*, *none*. Outputs a message with these level (not implemented yet)
 - **script** a shell script that is executing on a remote host. Keep the script as simple as possible
 
@@ -140,7 +144,7 @@ script: |
 
 The command for running might look like this:
 ```bash
-$ python test_launcher.py  -v vars.user1.yml  -t users.ssh_access.yml  -e host=192.168.3.12
+$ python test_launcher.py  -v vars.user1.yml  --task users.ssh_access.yml  -e host=192.168.3.12
 [ OK ] Checking ssh access of a user1 to a host using password
 ```
 We specify username/password in a file and a remote host in a command line
@@ -149,7 +153,7 @@ We specify username/password in a file and a remote host in a command line
 ### Example 2
 We use the same task and variables but now we tell to the script that expected return code should be 1 to be treated as PASSED.
 ```bash
-$ python test_launcher.py -v vars.user1.yml -t users.ssh_access.yml  -e host=192.168.3.12 -e rc_pass=1
+$ python test_launcher.py -v vars.user1.yml --task users.ssh_access.yml  -e host=192.168.3.12 -e rc_pass=1
 [FAIL] Checking ssh access of a user1 to a host using password
 ```
 Since our script returns 0, the test is recognized as FAILED.
@@ -194,6 +198,13 @@ $ sh run_tests.sh
 [ OK ] Checking whether a user nosudouser1 dis-/allowed sudo privileges
 [ OK ] Checking whether a user admin dis-/allowed sudo privileges
 [ OK ] Checking network settings
+```
+
+### Example 4
+Set to run as many tasks as you specify in a command line and select only ones that have tag **sudo**
+```bash
+$ python test_launcher.py -v vars.user1.yml --task users.*.yml --tag sudo -e host=192.168.3.14
+[ OK ] Checking whether a user user1 dis-/allowed sudo privileges
 ```
 
 ## Terms of Use
