@@ -10,6 +10,8 @@
 #  - implemented support of tags. Option --tag. Tasks with at least one specified tag will run.
 #    By default, no tags are used.
 #  - added version information. Option --version
+# Update: 25/12/2018
+#  - fixed wrong not running tasks when no tags specified
 #
 
 import os, sys
@@ -27,7 +29,7 @@ version_major = 1
 # Update it with minor changes, for example, improved some algorithm
 version_minor = 0
 # Update it when a fix is made
-version_patch = 0
+version_patch = 1
 
 
 class RetCode:
@@ -167,7 +169,7 @@ def menu_parsing():
   parser.add_argument("-v", "--vars-file", required=False, help="Load variables from file on a disk", nargs='*')
   parser.add_argument("-e", "--env-var", action='append', required=False, nargs='*', help="Passing arguments to a task as var=value. Might be used many times")
   parser.add_argument("--task", required=False, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
-  parser.add_argument("-t", "--tag", required=False, default="*", help="Select only the tasks with provided tag(s). Use a comma-separator to specify multiple tags")
+  parser.add_argument("-t", "--tag", required=False, default=None, help="Select only the tasks with provided tag(s). Use a comma-separator to specify multiple tags")
   parser.add_argument("-d", "--debug", required=False, default=False, action='store_true', help="Debug output")
   parser.add_argument("--version", action='store_true', default=False, required=False, help="Print version information and exit")
  
@@ -194,30 +196,33 @@ def menu_parsing():
 
   # print(args.task)
   # print(args.vars_file)
-  for task_file in args.task:
-    # print("Processing file", task_file)
-    task_text = file_loader_from_disk(task_file)
-    if len(task_text) > 0:
-      task_content = text_to_yaml(render_template(task_text, task_vars))
-      task_vars['returnCodes'] = task_content['metadata']['returnCodes']
-      # If --tag is specified
-      if args.tag is not None:
-        task_tags = task_content['metadata'].get('tags')
-        if task_tags is not None:
-          if type(task_tags) == str and len(task_tags): 
-            task_tags = [ x.strip() for x in task_tags.split(',') ]
-          selected_tags = [ x.strip() for x in args.tag.split(',') ]
-
-          # print("Tags", task_tags, selected_tags)
-    
-          if selected_tags != "*" and not len([ tag for tag in selected_tags if tag in task_tags ]): # selected_tags not in task_tags:
-            # skip tasks that not have requsted tag
-            continue; 
-          
-
-      retCode, err_msg = remote_executing(script=task_content['script'], debug=args.debug, **task_vars)
-      # print( err_msg, retCode )
-      print_output( task_content['metadata']['title'], err_msg, retCode )
+  if args.task is not None:
+    for task_file in args.task:
+      # print("Processing file", task_file)
+      task_text = file_loader_from_disk(task_file)
+      if len(task_text) > 0:
+        task_content = text_to_yaml(render_template(task_text, task_vars))
+        task_vars['returnCodes'] = task_content['metadata']['returnCodes']
+        # If --tag is specified
+        if args.tag is not None:
+          task_tags = task_content['metadata'].get('tags')
+          if task_tags is not None:
+            if type(task_tags) == str and len(task_tags): 
+              task_tags = [ x.strip() for x in task_tags.split(',') ]
+            selected_tags = [ x.strip() for x in args.tag.split(',') ]
+  
+            # print("Tags", task_tags, selected_tags)
+      
+            if selected_tags is not None and not len([ tag for tag in selected_tags if tag in task_tags ]): # selected_tags not in task_tags:
+              # skip tasks that do not have requsted tag
+              continue; 
+            
+  
+        retCode, err_msg = remote_executing(script=task_content['script'], debug=args.debug, **task_vars)
+        # print( err_msg, retCode )
+        print_output( task_content['metadata']['title'], err_msg, retCode )
+  else:
+    print("No one task is specified")
     pass
   pass
 
