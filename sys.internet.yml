@@ -1,6 +1,6 @@
 version: v1
 metadata:
-  title: Connection to google.com server
+  title: Connection to google.com server by {{ username }} from {{ host }}
   description: |
     Checks whether Internet is available on the host
   returnCodes:
