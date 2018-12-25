@@ -53,10 +53,8 @@ def remote_executing(script, debug, **kwargs):
       continue
 
   if host == None or username == None or password == None:
-    # print("Any of host, username, or password is not set")
     return RetCode.Fail
 
-  # print(script)
   try:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
@@ -84,7 +82,6 @@ def remote_executing(script, debug, **kwargs):
     exit_code = channel.recv_exit_status()
     result = exit_code
     channel.close()
-    # print("Exit status", exit_code)
   finally:
     client.close()
   if exit_code == int(returnCodes['pass']):
@@ -129,8 +126,49 @@ def merge_dicts(dict1, dict2):
   return z
 
 
+def menu_parsing():
+  """
+  It parses passed arguments and calls neccessary functions
+  """
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-v", "--vars-file", required=False, help="Load variables from file on a disk", action='append', nargs=1)
+  parser.add_argument("-e", "--env-var", action='append', required=False, nargs=1, help="Passing arguments to a task as var=value. Might be used many times")
+  parser.add_argument("-t", "--task-from-file", required=True, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
+  parser.add_argument("-d", "--debug", required=False, default=False, action='store_true', help="Debug output")
+ 
+  args = parser.parse_args()
 
-def loader():
+  vars_from_files = dict()
+  task_vars = dict()
+  # Load variables from files which specified with -v
+  if args.vars_file is not None:
+    for var_file in args.vars_file:
+      new_vars = yaml_loader_from_disk(var_file[0])
+      task_vars = merge_dicts(new_vars, task_vars)
+  # if there vars passed as -e 
+  # append them all to all_vars dictionary
+  if args.env_var is not None:
+    for pair in args.env_var:
+      key, value = pair[0].split('=', 1)
+      task_vars[key] = value
+
+  for task_file in args.task_from_file:
+    task_text = str()
+    with open(task_file, 'r') as task_fd:
+      task_text = task_fd.read()
+    if len(task_text) > 0:
+      #print(task_vars)
+      task_content = text_to_yaml(render_template(task_text, task_vars))
+      print(task_content)
+      task_vars['returnCodes'] = task_content['metadata']['returnCodes']
+      print(task_vars)
+      retCode, err_msg = remote_executing(script=task_content['script'], debug=args.debug, **task_vars)
+      print( err_msg, retCode )
+    pass
+  pass
+
+
+def loader2():
   """
   A wrapper of all things into one place
   """
@@ -162,13 +200,10 @@ def loader():
 
 
     task_buffer = file_loader_from_disk(task_in_file)
-    rendered_buffer = render_template(task_buffer, vars_content)
+    rendered_buffere= render_template(task_buffer, vars_content)
     task_content = text_to_yaml(rendered_buffer)
-    # task_content = yaml_loader_from_disk(task_in_file)
-    # task_content = file_loader_from_disk(task_in_file)
 
-
-    retCode, metadata, err_msg = execute_task(task_content, vars_content, debug=args.debug)
+    retCode, metadata, err_msg, metadata = execute_task(task_content, vars_content, debug=args.debug)
     status = ' OK '
     if retCode == RetCode.Fail:
       status = 'FAIL'
@@ -184,7 +219,61 @@ def loader():
     print(output_message)
   pass
 
-def execute_task(task_content, vars_content, debug):
+
+def cli_handler(listfiles_tasks, listfiles_vars, dict_vars, debug):
+  """
+  It accepts a list of arguments and run further procedures
+  """
+
+  def read_file(fname, raise_error_if_error=False):
+    """
+    Gets a content of file fname
+    """
+    result = open(fname, 'r').read()
+    return result
+  
+
+  all_vars = dict()
+  for fname in listfiles_vars:
+    varfile_content = yaml.dump(read_file(fname))
+    all_vars = merge_dicts(all_vars, varfile_content)
+
+  for key, value in dict_vars:
+    all_vars[key] = value
+
+
+  for fname in listfiles_tasks:
+    taskfile_yaml = yaml.dump(render_template(read_file(fname), all_vars))
+
+
+
+  pass
+
+
+def ta2sk_loader(task, task_vars, debug):
+  """ 
+  Buffer accepted as plain text and performing needed processing of 
+  data in it
+  param buffer is plain text of a task loaded from file or whatever else
+  param vars is a dictionary of variables
+  """
+  # task_content = text_to_yaml(render_template(buffer, task_vars))
+  retCode, metadata, err_msg = execute_task(task, task_vars, debug=debug) 
+  status = ' OK '
+  if retCode == RetCode.Fail:
+    status = 'FAIL'
+  elif retCode == RetCode.Warn:
+    status = 'WARN'
+
+#   output_message = "[{status}] {errmsg}{title}".format(
+#     errmsg = err_msg,
+#     title = metadata['title'],
+#     status = status,
+#   )
+  return ( err_msg, status )
+
+
+def e2xecute_task(task_content, vars_content, debug):
   """
   Executes a single task. A complete task should be loaded to
   raw_task_content buffer. In vars_in_yaml are passed variables, if needed.
@@ -192,19 +281,20 @@ def execute_task(task_content, vars_content, debug):
   retCode = 255
   metadata = dict()
   if task_content != None:
-    metadata = yaml.load(render_template(yaml.dump(task_content['metadata'], default_flow_style=False), vars_content))
+    print("Task content", task_content)
+    print("Task vars", vars_content)
+    # metadata = yaml.load(render_template(yaml.dump(task_content['metadata'], default_flow_style=False), vars_content))
     vars_content['returnCodes'] = metadata['returnCodes']
 
     # print(vars_content)
     script = render_template(task_content['script'], vars_content)
     retCode, err_msg = remote_executing(script=script, debug=debug, **vars_content)
-    # print("{title} finished with RC={retcode}".format(title=metadata['title'], retcode=retcode))
   else:
-    print("Task content is empty")
-  return ( retCode, metadata, err_msg ) 
+    err_msg = "Task content is empty"
+  return ( retCode, err_msg ) 
   
 
 
 if __name__ == "__main__": 
-  loader()
+  menu_parsing()
 
