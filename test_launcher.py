@@ -1,4 +1,16 @@
 #!/usr/bin/env python
+#
+# Changelog: 25/12/2018
+#  - rewritten some functions
+#  - option --task-from-file renamed to --task
+#  - options --var_file and --task accepts many files after it without a need
+#    to have the option name before each file
+#  - added option --debug. It shows stderr and stdout from a remote host
+#  - removed a lot of unneded code
+#  - implemented support of tags. Option --tag. Tasks with at least one specified tag will run.
+#    By default, no tags are used.
+#  - added version information. Option --version
+#
 
 import os, sys
 import paramiko
@@ -7,6 +19,15 @@ import argparse
 from jinja2 import Template
 import yaml
 import time
+
+
+### VERSIONING 
+# Update it with significant changes like adding new functionality
+version_major = 1
+# Update it with minor changes, for example, improved some algorithm
+version_minor = 0
+# Update it when a fix is made
+version_patch = 0
 
 
 class RetCode:
@@ -32,6 +53,7 @@ def remote_executing(script, debug, **kwargs):
     port - a ssh port
     username, password - credentials used for connecting
     script - a script that is being executing remotely
+    returnCodes - return codes that taken from task.metadata.returnCodes
   """
   result = None
   host, port, username, password = None, 22, None, None
@@ -126,24 +148,42 @@ def merge_dicts(dict1, dict2):
   return z
 
 
+def show_verinfo():
+  """
+  Version information
+  """
+  print("{ver_major}.{ver_minor}.{ver_patch}".format(
+    ver_major = version_major,
+    ver_minor = version_minor,
+    ver_patch = version_patch,
+  ))
+  pass
+
 def menu_parsing():
   """
   It parses passed arguments and calls neccessary functions
   """
   parser = argparse.ArgumentParser()
-  parser.add_argument("-v", "--vars-file", required=False, help="Load variables from file on a disk", action='append', nargs=1)
-  parser.add_argument("-e", "--env-var", action='append', required=False, nargs=1, help="Passing arguments to a task as var=value. Might be used many times")
-  parser.add_argument("-t", "--task-from-file", required=True, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
+  parser.add_argument("-v", "--vars-file", required=False, help="Load variables from file on a disk", nargs='*')
+  parser.add_argument("-e", "--env-var", action='append', required=False, nargs='*', help="Passing arguments to a task as var=value. Might be used many times")
+  parser.add_argument("--task", required=False, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
+  parser.add_argument("-t", "--tag", required=False, default="*", help="Select only the tasks with provided tag(s). Use a comma-separator to specify multiple tags")
   parser.add_argument("-d", "--debug", required=False, default=False, action='store_true', help="Debug output")
+  parser.add_argument("--version", action='store_true', default=False, required=False, help="Print version information and exit")
  
   args = parser.parse_args()
 
+  if args.version:
+    show_verinfo()
+    sys.exit(0)
+
   vars_from_files = dict()
   task_vars = dict()
+ 
   # Load variables from files which specified with -v
   if args.vars_file is not None:
     for var_file in args.vars_file:
-      new_vars = yaml_loader_from_disk(var_file[0])
+      new_vars = yaml_loader_from_disk(var_file)
       task_vars = merge_dicts(new_vars, task_vars)
   # if there vars passed as -e 
   # append them all to all_vars dictionary
@@ -152,147 +192,50 @@ def menu_parsing():
       key, value = pair[0].split('=', 1)
       task_vars[key] = value
 
-  for task_file in args.task_from_file:
-    task_text = str()
-    with open(task_file, 'r') as task_fd:
-      task_text = task_fd.read()
+  # print(args.task)
+  # print(args.vars_file)
+  for task_file in args.task:
+    # print("Processing file", task_file)
+    task_text = file_loader_from_disk(task_file)
     if len(task_text) > 0:
-      #print(task_vars)
       task_content = text_to_yaml(render_template(task_text, task_vars))
-      print(task_content)
       task_vars['returnCodes'] = task_content['metadata']['returnCodes']
-      print(task_vars)
+      # If --tag is specified
+      if args.tag is not None:
+        task_tags = task_content['metadata'].get('tags')
+        if task_tags is not None:
+          if type(task_tags) == str and len(task_tags): 
+            task_tags = [ x.strip() for x in task_tags.split(',') ]
+          selected_tags = [ x.strip() for x in args.tag.split(',') ]
+
+          # print("Tags", task_tags, selected_tags)
+    
+          if selected_tags != "*" and not len([ tag for tag in selected_tags if tag in task_tags ]): # selected_tags not in task_tags:
+            # skip tasks that not have requsted tag
+            continue; 
+          
+
       retCode, err_msg = remote_executing(script=task_content['script'], debug=args.debug, **task_vars)
-      print( err_msg, retCode )
+      # print( err_msg, retCode )
+      print_output( task_content['metadata']['title'], err_msg, retCode )
     pass
   pass
 
-
-def loader2():
+def print_output( title, errmsg, retCode ):
   """
-  A wrapper of all things into one place
+  Formatted output
   """
-  parser = argparse.ArgumentParser()
-  parser.add_argument("-v", "--vars-file", required=False, help="Load variables from file on a disk")
-  parser.add_argument("-e", "--env-var", action='append', required=False, nargs=1, help="Passing arguments to a task as var=value. Might be used many times")
-  parser.add_argument("-t", "--task-from-file", required=True, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
-  parser.add_argument("-d", "--debug", required=False, default=False, action='store_true', help="Debug output")
- 
-  args = parser.parse_args()
-
-  start_time = time.time()
- 
-  task_counter = 0
-  for task_in_file in args.task_from_file:
-    task_counter += 1
-  
-    runtime_vars = dict()
-    vars_content = dict()
-
-    if args.vars_file is not None:
-      vars_from_file = yaml_loader_from_disk(args.vars_file)
-      vars_content = merge_dicts(runtime_vars, vars_from_file)
-  
-    if args.env_var is not None:
-      for pair in args.env_var:
-        key, value = pair[0].split('=', 1)
-        vars_content[key] = value
-
-
-    task_buffer = file_loader_from_disk(task_in_file)
-    rendered_buffere= render_template(task_buffer, vars_content)
-    task_content = text_to_yaml(rendered_buffer)
-
-    retCode, metadata, err_msg, metadata = execute_task(task_content, vars_content, debug=args.debug)
-    status = ' OK '
-    if retCode == RetCode.Fail:
-      status = 'FAIL'
-    elif retCode == RetCode.Warn:
-      status = 'WARN'
-    output_message = "[{status}] {errmsg}{title}".format(
-        t_counter = task_counter,
-        errmsg = err_msg,
-        all_tasks = len(args.task_from_file),
-        title = metadata['title'],
-        status = status,
-      )
-    print(output_message)
-  pass
-
-
-def cli_handler(listfiles_tasks, listfiles_vars, dict_vars, debug):
-  """
-  It accepts a list of arguments and run further procedures
-  """
-
-  def read_file(fname, raise_error_if_error=False):
-    """
-    Gets a content of file fname
-    """
-    result = open(fname, 'r').read()
-    return result
-  
-
-  all_vars = dict()
-  for fname in listfiles_vars:
-    varfile_content = yaml.dump(read_file(fname))
-    all_vars = merge_dicts(all_vars, varfile_content)
-
-  for key, value in dict_vars:
-    all_vars[key] = value
-
-
-  for fname in listfiles_tasks:
-    taskfile_yaml = yaml.dump(render_template(read_file(fname), all_vars))
-
-
-
-  pass
-
-
-def ta2sk_loader(task, task_vars, debug):
-  """ 
-  Buffer accepted as plain text and performing needed processing of 
-  data in it
-  param buffer is plain text of a task loaded from file or whatever else
-  param vars is a dictionary of variables
-  """
-  # task_content = text_to_yaml(render_template(buffer, task_vars))
-  retCode, metadata, err_msg = execute_task(task, task_vars, debug=debug) 
-  status = ' OK '
-  if retCode == RetCode.Fail:
-    status = 'FAIL'
-  elif retCode == RetCode.Warn:
-    status = 'WARN'
-
-#   output_message = "[{status}] {errmsg}{title}".format(
-#     errmsg = err_msg,
-#     title = metadata['title'],
-#     status = status,
-#   )
-  return ( err_msg, status )
-
-
-def e2xecute_task(task_content, vars_content, debug):
-  """
-  Executes a single task. A complete task should be loaded to
-  raw_task_content buffer. In vars_in_yaml are passed variables, if needed.
-  """
-  retCode = 255
-  metadata = dict()
-  if task_content != None:
-    print("Task content", task_content)
-    print("Task vars", vars_content)
-    # metadata = yaml.load(render_template(yaml.dump(task_content['metadata'], default_flow_style=False), vars_content))
-    vars_content['returnCodes'] = metadata['returnCodes']
-
-    # print(vars_content)
-    script = render_template(task_content['script'], vars_content)
-    retCode, err_msg = remote_executing(script=script, debug=debug, **vars_content)
-  else:
-    err_msg = "Task content is empty"
-  return ( retCode, err_msg ) 
-  
+  status = "FAIL"
+  if retCode == RetCode.Warn:
+    status = "WARN"
+  elif retCode == RetCode.Pass:
+    status = " OK "
+  msg = "[{status}] {errmsg}{title}".format(
+    status = status,
+    errmsg = errmsg,
+    title = title,
+  )
+  print( msg )
 
 
 if __name__ == "__main__": 

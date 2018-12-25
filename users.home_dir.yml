@@ -7,7 +7,9 @@ metadata:
     warn: 35
   displayStdout: False
   displayStderr: True
-  tags: user, homedir, exist
+  tags: 
+    - homedir
+    - exist
   importance: medium
 script: |
   should_be_homedir=`getent passwd {{ testuser }} | awk -F':' '{print $6}'`
