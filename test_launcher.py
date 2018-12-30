@@ -199,6 +199,7 @@ def menu_parsing():
 
   # print(args.task)
   # print(args.vars_file)
+  exit_code = 0
   if args.task is not None:
     for task_file in args.task:
       # print("Processing file", task_file)
@@ -222,11 +223,14 @@ def menu_parsing():
             
         retCode, err_msg = remote_executing(script=task_content['script'], debug=args.debug, **task_vars)
         # print( err_msg, retCode )
+        if retCode == RetCode.Fail:
+          exit_code += 1
         print_output( task_content['metadata']['title'], err_msg, retCode )
   else:
     print("No one task is specified")
+    exit_code = 1
     pass
-  pass
+  sys.exit(exit_code) 
 
 def print_output( title, errmsg, retCode ):
   """
