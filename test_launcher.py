@@ -76,7 +76,10 @@ def remote_executing(script, debug, **kwargs):
       returnCodes = value
       continue
 
-  if host == None or username == None or password == None:
+  # print(host, username, password)
+  if host is None or username is None or password is None:
+    print("Variables host, username, and password must be passed")
+    sys.exit(1)
     return RetCode.Fail
 
   try:
@@ -217,7 +220,6 @@ def menu_parsing():
               # skip tasks that do not have requsted tag
               continue; 
             
-  
         retCode, err_msg = remote_executing(script=task_content['script'], debug=args.debug, **task_vars)
         # print( err_msg, retCode )
         print_output( task_content['metadata']['title'], err_msg, retCode )
