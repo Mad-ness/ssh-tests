@@ -173,6 +173,7 @@ def menu_parsing():
   parser.add_argument("-e", "--env-var", action='append', required=False, nargs='*', help="Passing arguments to a task as var=value. Might be used many times")
   parser.add_argument("-t", "--task", required=False, nargs='*', help="A path to a task in YAML format. Multiple files allowed")
   parser.add_argument("--tag", required=False, default=None, help="Select only the tasks with provided tag(s). Use a comma-separator to specify multiple tags")
+  parser.add_argument("-o", "--output", required=False, default=None, help="Print a result message in specified log file")
   parser.add_argument("-d", "--debug", required=False, default=False, action='store_true', help="Debug output")
   parser.add_argument("--version", action='store_true', default=False, required=False, help="Print version information and exit")
  
@@ -225,14 +226,14 @@ def menu_parsing():
         # print( err_msg, retCode )
         if retCode == RetCode.Fail:
           exit_code += 1
-        print_output( task_content['metadata']['title'], err_msg, retCode )
+        print_output( task_content['metadata']['title'], err_msg, retCode, logtofile=args.output )
   else:
     print("No one task is specified")
     exit_code = 1
     pass
   sys.exit(exit_code) 
 
-def print_output( title, errmsg, retCode ):
+def print_output( title, errmsg, retCode, logtofile ):
   """
   Formatted output
   """
@@ -247,6 +248,11 @@ def print_output( title, errmsg, retCode ):
     title = title,
   )
   print( msg )
+  if logtofile is not None:
+    try:
+      open(logtofile, 'a+').write(msg + "\n")
+    except:
+      pass
 
 
 if __name__ == "__main__": 
