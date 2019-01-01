@@ -124,7 +124,7 @@ def file_loader_from_disk(filename):
   try:
     result = open(filename, 'r').read()
   except IOError as exc:
-    print(exc.msg);
+    print(exc.strerror);
   return result;
 
 
