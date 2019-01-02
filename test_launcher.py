@@ -59,6 +59,11 @@ def remote_executing(script, debug, **kwargs):
   """
   result = None
   host, port, username, password = None, 22, None, None
+  returnCodes = {
+    'pass': RetCode.Pass,
+    'warn': RetCode.Warn,
+    'fail': RetCode.Fail
+  }
   for key, value in kwargs.items():
     if key == 'host': 
       host = value; 
@@ -82,6 +87,7 @@ def remote_executing(script, debug, **kwargs):
     sys.exit(1)
     return RetCode.Fail
 
+  exit_code = RetCode.Pass
   try:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
